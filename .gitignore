@@ -1,3 +1,26 @@
+# password files
+*.pwd
+*.cnf
+*.conf
+
+# test files
+*.csv
+*.ids
+*.input
+*.sample
+*.tsv
+*.txt
+NOTES
+output
+
+# log files
+*.log
+
+# working files
+*.swp
+*.tar
+attachments/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
