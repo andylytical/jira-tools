@@ -33,12 +33,14 @@ def get_session():
 def get_config():
     key = 'cfg'
     if key not in resources:
-        envvar = 'ATLASSIAN_TOOLS_CONFIG'
-        try:
-            conf_file = os.environ[ envvar ]
-        except KeyError as e:
-            logging.error( f"Env var '{envvar}' must be set" )
-            raise SystemExit( 1 )
+        envvar = 'JIRA_TOOLS_CONFIG'
+        default_fn = '~/.config/jira-tools/config.ini'
+        conf_file = os.getenv( envvar, default_fn )
+        # try:
+        #     conf_file = os.environ[ envvar ]
+        # except KeyError as e:
+        #     logging.error( f"Env var '{envvar}' must be set" )
+        #     raise SystemExit( 1 )
         cfg = configparser.ConfigParser( allow_no_value=True )
         cfg.optionxform = str
         cfg.read( conf_file )

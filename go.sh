@@ -24,5 +24,6 @@ fi
 
 $action docker run -it --pull always \
 --mount type=bind,src="${src_home}",dst=/home \
+--env JIRA_TOOLS_CONFIG="/home/.config/jira-tools/config.ini" \
 $REGISTRY/$OWNER/$REPO:$tag
 
