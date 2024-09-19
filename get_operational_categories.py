@@ -1,20 +1,37 @@
+import argparse
+import io
 import csv
 import logging
 import pathlib
-import time
-
 import pprint
+import textwrap
+import time
 
 from functools import wraps
 from web_api import api_get
 
-logfmt = '%(levelname)s:%(funcName)s[%(lineno)d] %(message)s'
-loglvl = logging.INFO
-#loglvl = logging.DEBUG
-logging.basicConfig( level=loglvl, format=logfmt )
 
 resources = {} # module level resources
 
+
+def get_args( params=None ):
+    key = 'args'
+    if key not in resources:
+        constructor_args = {
+            'formatter_class': argparse.ArgumentDefaultsHelpFormatter,
+            'description': textwrap.dedent( '''\
+                Convenient listing of all parents and children 
+                of the "operational categories" custom field.
+                ''')
+            }
+        parser = argparse.ArgumentParser( **constructor_args )
+        parser.add_argument( '-d', '--debug', action='store_true' )
+        parser.add_argument( '-v', '--verbose', action='store_true' )
+        parser.add_argument( '-f', '--format', default='json',
+            choices=[ 'json', 'csv' ] )
+        args = parser.parse_args( params )
+        resources[key] = args
+    return resources[key]
 
 def get_warnings():
     key = 'errs'
@@ -104,14 +121,20 @@ def get_operational_categories():
     return data
 
 
-def operational_categories_as_csv():
-    data = get_operational_categories()
-    outfile = pathlib.Path( 'operational_categories.csv' )
-    with outfile.open( mode='w' ) as csvfile:
-        csvwriter = csv.writer( csvfile )
-        for parent, children in data.items():
-            for child in children:
-                csvwriter.writerow( [ parent, child ] )
+def operational_categories_as_csv( data ):
+    # data = get_operational_categories()
+    # outfile = pathlib.Path( 'operational_categories.csv' )
+    # with outfile.open( mode='w' ) as csvfile:
+    #     csvwriter = csv.writer( csvfile )
+    #     for parent, children in data.items():
+    #         for child in children:
+    #             csvwriter.writerow( [ parent, child ] )
+    output = io.StringIO()
+    csvwriter = csv.writer( output )
+    for parent, children in data.items():
+        for child in children:
+            csvwriter.writerow( [ parent, child ] )
+    return output.getvalue()
 
 
 
@@ -125,18 +148,12 @@ def test_auth():
 def run():
     starttime = time.time()
 
-    # test_auth()
-
-    operational_categories_as_csv()
-
-    # set_banner()
-
-    # set_general_config()
-
-    # add_application_access_groups() #returns error 400
-
-    # project_roles_as_csv()
-    # get_project_roles( 'SVCPLAN', 10002 )
+    args = get_args()
+    data = get_operational_categories()
+    if args.format == 'csv':
+        print( operational_categories_as_csv( data ) )
+    else:
+        pprint.pprint( data )
 
     elapsed = time.time() - starttime
     logging.info( f'Finished in {elapsed} seconds!' )
@@ -149,4 +166,12 @@ def run():
 
 
 if __name__ == '__main__':
+    args = get_args()
+    loglvl = logging.WARNING
+    if args.verbose:
+        loglvl = logging.INFO
+    if args.debug:
+        loglvl = logging.DEBUG
+    logfmt = '%(levelname)s:%(funcName)s[%(lineno)d] %(message)s'
+    logging.basicConfig( level=loglvl, format=logfmt )
     run()
