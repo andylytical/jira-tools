@@ -1,9 +1,10 @@
 import argparse
-import io
 import csv
+import io
 import logging
 import pathlib
 import pprint
+import tabulate
 import textwrap
 import time
 
@@ -27,8 +28,8 @@ def get_args( params=None ):
         parser = argparse.ArgumentParser( **constructor_args )
         parser.add_argument( '-d', '--debug', action='store_true' )
         parser.add_argument( '-v', '--verbose', action='store_true' )
-        parser.add_argument( '-f', '--format', default='json',
-            choices=[ 'json', 'csv' ] )
+        parser.add_argument( '-f', '--format', default='pprint',
+            help="One of 'print', 'csv', or a table format name for tabulate" )
         args = parser.parse_args( params )
         resources[key] = args
     return resources[key]
@@ -152,8 +153,10 @@ def run():
     data = get_operational_categories()
     if args.format == 'csv':
         print( operational_categories_as_csv( data ) )
-    else:
+    elif args.format == 'print':
         pprint.pprint( data )
+    else:
+        print( tabulate.tabulate( data, tablefmt=args.format ) )
 
     elapsed = time.time() - starttime
     logging.info( f'Finished in {elapsed} seconds!' )
