@@ -7,7 +7,6 @@
 *.csv
 *.ids
 *.input
-*.sample
 *.tsv
 *.txt
 NOTES

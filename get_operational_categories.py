@@ -1,5 +1,4 @@
 import csv
-import json
 import logging
 import pathlib
 import time
@@ -7,21 +6,12 @@ import time
 import pprint
 
 from functools import wraps
-
-import web_api
-
-
-# from http.client import HTTPConnection
-# HTTPConnection.debuglevel = 1
+from web_api import api_get
 
 logfmt = '%(levelname)s:%(funcName)s[%(lineno)d] %(message)s'
 loglvl = logging.INFO
 #loglvl = logging.DEBUG
 logging.basicConfig( level=loglvl, format=logfmt )
-
-# requests_log = logging.getLogger("urllib3")
-# requests_log.setLevel(loglvl)
-# requests_log.propagate = True
 
 resources = {} # module level resources
 
@@ -75,80 +65,69 @@ def timing( f ):
     return wrap
 
 
-# def get_custom_fields():
-#     path = 'customFields'
+def get_custom_field_id( cf_name ):
+    cf_id = None
+    r = api_get( 'customFields' )
+    data = r.json()
+    # pprint.pprint( { k:data[k] for k in ( 'maxResults', 'total' ) } )
+    params = { 'maxResults':data['total'] }
+    r = api_get( 'customFields', params=params )
+    data = r.json()
+    # pprint.pprint( { k:data[k] for k in ( 'maxResults', 'total' ) } )
+    # pprint.pprint( data )
+    for field in data['values']:
+        if field['name'] == cf_name:
+            cf_id = field['numericId']
+            break
+    return cf_id
 
 
-
-# def add_application_access_groups():
-#     jira_groups = get_config().options( 'Application Access Jira' )
-#     path = 'applicationrole'
-#     # r = api_get( path )
-#     data = {
-#         'key': 'jira-software',
-#         'groups': jira_groups[:2],
-#         }
-#     r = api_put( path, data )
-#     print( r.text )
-
-
-# def get_project_roles( pid ):
-#     r = api_get( f'project/{pid}/role' )
-#     data = r.json()
-#     role_names = list( data.keys() )
-#     roles = {}
-#     for role in role_names:
-#         rid = get_role_id( role )
-#         role_data = get_project_role_details( pid, rid )
-#         # print( f"Project:{pid} Role:'{role}'" )
-#         # pprint.pprint( role_data )
-#         actors = [ f"{r['name']} ({r['displayName']})" for r in role_data['actors'] ]
-#         roles[role] = actors
-#     return roles
+def get_operational_categories():
+    cf_id = get_custom_field_id( 'Operational Categories' )
+    r = api_get( f'customFields/{cf_id}/options' )
+    options = r.json()[ 'options' ]
+    names = {}
+    parents = {}
+    data = {}
+    for o in options:
+        f_id = o[ 'id' ]
+        f_children = o[ 'childrenIds' ]
+        f_name = o[ 'value' ]
+        names[ f_id ] = f_name
+        if len( f_children ) > 0:
+            parents[ f_id ] = f_children
+    for parent_id, child_ids in parents.items():
+        parent = names[ parent_id ]
+        children = [ names[x] for x in child_ids ]
+        data[ parent ] = children
+    # pprint.pprint( data )
+    return data
 
 
-# def get_project_role_details( pid, role_id ):
-#     path = f'project/{pid}/role/{role_id}'
-#     r = api_get( path )
-#     data = r.json()
-#     return data
-
-
-# def project_roles_as_csv():
-#     r = api_get( 'project' )
-#     data = r.json()
-#     project_keys = { p['key'] : p['name'] for p in data }
-#     # projects = {}
-#     csv_rows = [ ['Project', 'Role', 'Members'] ]
-#     for pid,p_name in project_keys.items():
-#         roles = get_project_roles( pid )
-#         # projects[pid] = {
-#         #     'name': p_name,
-#         #     'roles': roles,
-#         #     }
-#         for role, members in roles.items():
-#             csv_rows.append( [ pid, role] + members )
-#     # pprint.pprint( projects )
-#     output = pathlib.Path( 'perms.csv' )
-#     with output.open(mode='w', newline='') as f:
-#         writer = csv.writer(f)
-#         writer.writerows( csv_rows )
-#     # return projects
-
+def operational_categories_as_csv():
+    data = get_operational_categories()
+    outfile = pathlib.Path( 'operational_categories.csv' )
+    with outfile.open( mode='w' ) as csvfile:
+        csvwriter = csv.writer( csvfile )
+        for parent, children in data.items():
+            for child in children:
+                csvwriter.writerow( [ parent, child ] )
 
 
 
 def test_auth():
     path = 'issue/SVCPLAN-2741'
     r = api_get( path )
-    # print( r.text )
+    print( r.text )
 
 
 
 def run():
     starttime = time.time()
 
-    test_auth()
+    # test_auth()
+
+    operational_categories_as_csv()
 
     # set_banner()
 

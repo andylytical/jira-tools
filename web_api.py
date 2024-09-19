@@ -157,8 +157,8 @@ def api_go( method, path, version='latest', **kw ):
     return r
 
 
-def api_get( path ):
-    return api_go( 'GET', path )
+def api_get( path, params=None ):
+    return api_go( 'GET', path, params=params )
 
 
 def api_delete( path, data=None ):
